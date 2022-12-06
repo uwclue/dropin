@@ -28,6 +28,7 @@ function App() {
   const [ loading, setLoading ] = React.useState(false);
   const [ addedTopics, setAddedTopics ] = React.useState([]);
   const [ snackbar, setSnackbar ] = React.useState('');
+  const [ userEmail, setUserEmail ] = React.useState('');
 
   useEffect(() => {
     const initClient = () => {
@@ -39,8 +40,9 @@ function App() {
     gapi.load('client::auth2', initClient);
   })
 
-  const onSuccess = (_) => {
+  const onSuccess = (res) => {
     setSignedIn(true);
+    setUserEmail(res.profileObj.email);
   }
 
   const getTopicOptions = () => {
@@ -74,16 +76,19 @@ function App() {
   }
 
   const onSubmitAddedOptions = () => {
+    const today = new Date();
+    const dateString = `${today.getMonth() + 1}-${today.getDate()}-${today.getFullYear()}`;
+    const timeString = `${today.getHours()}:${today.getMinutes()}:${today.getSeconds()}`;
     gapi.client.request({
-      'path': `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet2!A1:A1:append`,
+      'path': `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet2!A1:D1:append`,
       'method': 'POST',
       'params': {
-        'valueInputOption': 'RAW',
+        'valueInputOption': 'USER_ENTERED',
         'insertDataOption': 'INSERT_ROWS',
       },
       'body': {
-        'range': 'Sheet2!A1:A1',
-        'values': addedTopics.map((x) => [x]),
+        'range': 'Sheet2!A1:D1',
+        'values': addedTopics.map((x) => [x, dateString, timeString, userEmail]),
       }
     }).then((res) => {
       if (res.status === 200) {
@@ -188,19 +193,14 @@ function App() {
         </Grid>
       </div>
       <Snackbar open={snackbar !== ''} autoHideDuration={5000} onClose={handleSnackbarClose}>
-        <Alert onClose={handleSnackbarClose} severity={snackbar} variant='filled'>
-          {snackbar === 'success' ?
-          <div>
-            <AlertTitle> Success </AlertTitle>
-            Topics submitted successfully!
-          </div>
-          :
-          <div>
-            <AlertTitle> Error </AlertTitle>
-            Error, topics were not submitted.
-          </div>
-          }
+        {snackbar === 'success' ?
+        <Alert onClose={handleSnackbarClose} severity={'success'} variant='filled'>
+          <AlertTitle> Success </AlertTitle>
+          Topics submitted successfully!
         </Alert>
+        :
+        <div></div>
+        }
       </Snackbar>
     </Box>
   );
